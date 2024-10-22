@@ -9,7 +9,7 @@ import numpy as np
 import seaborn as sns
 from generator import DataGenerator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from neuron import Neuron
+from neuron import ACTIVATION_FUNCTIONS, Neuron
 
 matplotlib.use('TkAgg')
 
@@ -39,13 +39,19 @@ class GUI:
         self.generate_button = customtkinter.CTkButton(self.root, text="Generate", command=self.generate)
         self.generate_button.grid(row=2, column=0, padx=10, pady=10, sticky="w")
 
+        # Activation function
+        self.af_option = customtkinter.CTkOptionMenu(self.root, values=ACTIVATION_FUNCTIONS, command=self.af_callback)
+        self.af_option.set(ACTIVATION_FUNCTIONS[0])
+        self.neuron.set_activation_function(ACTIVATION_FUNCTIONS[0])
+        self.af_option.grid(row=3, column=0, padx=10, pady=10, sticky="w")
+
         # Train
-        self.generate_button = customtkinter.CTkButton(self.root, text="Train", command=self.train)
-        self.generate_button.grid(row=3, column=0, padx=10, pady=10, sticky="w")
+        self.train_button = customtkinter.CTkButton(self.root, text="Train", command=self.train)
+        self.train_button.grid(row=4, column=0, padx=10, pady=10, sticky="w")
 
         # Predict
-        self.generate_button = customtkinter.CTkButton(self.root, text="Predict", command=self.predict)
-        self.generate_button.grid(row=4, column=0, padx=10, pady=10, sticky="w")
+        self.predict_button = customtkinter.CTkButton(self.root, text="Predict", command=self.predict)
+        self.predict_button.grid(row=5, column=0, padx=10, pady=10, sticky="w")
 
         # Plot
         self.plot_canvas = customtkinter.CTkCanvas(self.root)
@@ -69,6 +75,10 @@ class GUI:
         )
 
         self.plot(self.data)
+
+
+    def af_callback(self, choice):
+        self.neuron.set_activation_function(choice)
 
 
     def train(self):
