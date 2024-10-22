@@ -2,11 +2,14 @@ import string
 from tkinter import messagebox
 
 import customtkinter
+import generator as gen
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 from generator import DataGenerator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from neuron import Neuron
 
 matplotlib.use('TkAgg')
 
@@ -14,6 +17,8 @@ matplotlib.use('TkAgg')
 class GUI:
     def __init__(self):
         self.generator = DataGenerator()
+        self.neuron = Neuron()
+        self.data = None
         sns.set_theme()
 
         customtkinter.set_appearance_mode("dark")
@@ -34,6 +39,14 @@ class GUI:
         self.generate_button = customtkinter.CTkButton(self.root, text="Generate", command=self.generate)
         self.generate_button.grid(row=2, column=0, padx=10, pady=10, sticky="w")
 
+        # Train
+        self.generate_button = customtkinter.CTkButton(self.root, text="Train", command=self.train)
+        self.generate_button.grid(row=3, column=0, padx=10, pady=10, sticky="w")
+
+        # Predict
+        self.generate_button = customtkinter.CTkButton(self.root, text="Predict", command=self.predict)
+        self.generate_button.grid(row=4, column=0, padx=10, pady=10, sticky="w")
+
         # Plot
         self.plot_canvas = customtkinter.CTkCanvas(self.root)
         self.plot_canvas.grid(row=0, column=1, rowspan=3, padx=10, pady=10, sticky="new")
@@ -50,14 +63,37 @@ class GUI:
         if nodes is None or samples is None:
             return
 
-        data = self.generator.generate_data(
+        self.data = self.generator.generate_data(
             nodes,
             samples
         )
 
-        self.plot(data)
+        self.plot(self.data)
 
-    
+
+    def train(self):
+        if self.data is None:
+            messagebox.showerror("Error", "Generate data first")
+            return
+        
+        self.neuron.train(self.data, 100)
+
+
+    def predict(self):
+        x = np.linspace(*plt.xlim(), 200)
+        y = np.linspace(*plt.ylim(), 200)
+        xx, yy = np.meshgrid(x, y)
+
+        z = np.zeros((len(x), len(y)))
+        for i in range(len(x)):
+            for j in range(len(y)):
+                z[i, j] = self.neuron.predict([x[i], y[j]])
+
+        plt.contourf(xx, yy, z, alpha=0.5, zorder=-1)
+        self.fig_canvas.draw()
+        self.fig_canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
+
+
     def plot(self, data):
         if hasattr(self, 'fig_canvas'):
             self.fig_canvas.get_tk_widget().pack_forget()
