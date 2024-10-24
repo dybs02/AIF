@@ -45,17 +45,21 @@ class GUI:
         self.neuron.set_activation_function(ACTIVATION_FUNCTIONS[0])
         self.af_option.grid(row=3, column=0, padx=10, pady=10, sticky="w")
 
+        # Epochs
+        self.epochs_input = customtkinter.CTkEntry(self.root, placeholder_text="Number of epochs")
+        self.epochs_input.grid(row=4, column=0, padx=10, pady=10, sticky="w")
+
         # Train
         self.train_button = customtkinter.CTkButton(self.root, text="Train", command=self.train)
-        self.train_button.grid(row=4, column=0, padx=10, pady=10, sticky="w")
+        self.train_button.grid(row=5, column=0, padx=10, pady=10, sticky="w")
 
         # Predict
         self.predict_button = customtkinter.CTkButton(self.root, text="Predict", command=self.predict)
-        self.predict_button.grid(row=5, column=0, padx=10, pady=10, sticky="w")
+        self.predict_button.grid(row=6, column=0, padx=10, pady=10, sticky="w")
 
         # Plot
         self.plot_canvas = customtkinter.CTkCanvas(self.root)
-        self.plot_canvas.grid(row=0, column=1, rowspan=3, padx=10, pady=10, sticky="new")
+        self.plot_canvas.grid(row=0, column=1, rowspan=20, padx=10, pady=10, sticky="new")
 
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -86,7 +90,11 @@ class GUI:
             messagebox.showerror("Error", "Generate data first")
             return
         
-        self.neuron.train(self.data, 100)
+        if not self.epochs_input.get().isnumeric():
+            messagebox.showerror("Error", "Invalid number of epochs")
+            return
+        
+        self.neuron.train(self.data, int(self.epochs_input.get()))
 
 
     def predict(self):
