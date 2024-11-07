@@ -301,29 +301,69 @@ class FuzzyPlayer(Player):
         # velocity.view()
 
         # for TSK:
-        # self.x_universe = np.arange...
-        # self.x_mf = {
-        #     "far_left": fuzz.trapmf(
-        #         self.x_universe,
-        #         [
-        #             ...
-        #         ],
-        #     ),
-        #     ...
-        # }
-        # ...
-        # self.velocity_fx = {
-        #     "f_slow_left": lambda x_diff, y_diff: -1 * (abs(x_diff) + y_diff),
-        #     ...
-        # }
+        self.x_universe = np.arange(-800, 801, 1)
+        self.x_mf = {
+            "far_right": fuzz.trapmf(
+                self.x_universe,
+                [-800, -800, -600, -250]
+            ),
+            "right": fuzz.trapmf(
+                self.x_universe,
+                [-600, -300, -80, -20]
+            ),
+            "center": fuzz.trapmf(
+                self.x_universe,
+                [-40, -30, 30, 40]
+            ),
+            "left": fuzz.trapmf(
+                self.x_universe,
+                [20, 80, 300, 600]
+            ),
+            "far_left": fuzz.trapmf(
+                self.x_universe,
+                [250, 600, 800, 800]
+            )
+        }
+
+        self.y_universe = np.arange(0, 401, 1)
+        self.y_mf = {
+            "very_close": fuzz.trapmf(
+                self.y_universe,
+                [0, 0, 140, 200]
+            ),
+            "close": fuzz.trapmf(
+                self.y_universe,
+                [150, 200, 250, 300]
+            ),
+            "medium": fuzz.trapmf(
+                self.y_universe,
+                [250, 280, 320, 350]
+            ),
+            "far": fuzz.trapmf(
+                self.y_universe,
+                [300, 350, 400, 400]
+            )
+        }
+
+
+        self.velocity_fx = {
+            "fast_left":  lambda x_diff, y_diff: -1 * (abs(x_diff) + y_diff),
+            "slow_left":  lambda x_diff, y_diff: -0.3 * (abs(x_diff) + y_diff),
+            "stop":         lambda x_diff, y_diff: 0,
+            "slow_right": lambda x_diff, y_diff: 0.3 * (abs(x_diff) + y_diff),
+            "fast_right": lambda x_diff, y_diff: 1 * (abs(x_diff) + y_diff)
+        }
 
         # visualize TSK
         # plt.figure()
         # for name, mf in self.x_mf.items():
         #     plt.plot(self.x_universe, mf, label=name)
         # plt.legend()
+        # plt.figure()
+        # for name, mf in self.y_mf.items():
+        #     plt.plot(self.y_universe, mf, label=name)
+        # plt.legend()
         # plt.show()
-        # ...
 
     def act(self, x_diff: int, y_diff: int):
         velocity = self.make_decision(x_diff, y_diff)
@@ -336,36 +376,64 @@ class FuzzyPlayer(Player):
         self.fuzzy_ctrl.compute()
         
         velocity = self.fuzzy_ctrl.output['velocity']
-        # print(f"X distance: {x_diff}")
-        # print(f"Y distance: {y_diff}")
-        # print(f"Velocity: {velocity}")
-        
-        return velocity
 
 
         # for TSK:
-        # x_vals = {
-        #     name: fuzz.interp_membership(self.x_universe, mf, x_diff)
-        #     for name, mf in self.x_mf.items()
-        # }
-        # ...
-        # rule activations with Zadeh norms
-        # activations = {
-        #     "f_slow_left": max(
-        #         [
-        #             min(x_vals...),
-        #             min(x_vals...),
-        #         ]
-        #     ),
-        #     ...
-        # }
+        x_vals = {
+            name: fuzz.interp_membership(self.x_universe, mf, x_diff)
+            for name, mf in self.x_mf.items()
+        }
+        y_vals = {
+            name: fuzz.interp_membership(self.y_universe, mf, y_diff)
+            for name, mf in self.y_mf.items()
+        }
 
-        # velocity = sum(
-        #     activations[val] * self.velocity_fx[val](x_diff, y_diff)
-        #     for val in activations
-        # ) / sum(activations[val] for val in activations)
+        activations = {
+            "fast_left": max([
+                min(x_vals["far_left"], y_vals["very_close"]),
+                min(x_vals["far_left"], y_vals["close"]),
+                min(x_vals["far_left"], y_vals["medium"]),
+                min(x_vals["far_left"], y_vals["far"])
+            ]),
+            "slow_left": max([
+                min(x_vals["left"], y_vals["very_close"]),
+                min(x_vals["left"], y_vals["close"]),
+                min(x_vals["left"], y_vals["medium"]),
+                min(x_vals["left"], y_vals["far"])
+            ]),
+            "stop": max([
+                min(x_vals["center"], y_vals["very_close"]),
+                min(x_vals["center"], y_vals["close"]),
+                min(x_vals["center"], y_vals["medium"]),
+                min(x_vals["center"], y_vals["far"])
+            ]),
+            "slow_right": max([
+                min(x_vals["right"], y_vals["very_close"]),
+                min(x_vals["right"], y_vals["close"]),
+                min(x_vals["right"], y_vals["medium"]),
+                min(x_vals["right"], y_vals["far"])
+            ]),
+            "fast_right": max([
+                min(x_vals["far_right"], y_vals["very_close"]),
+                min(x_vals["far_right"], y_vals["close"]),
+                min(x_vals["far_right"], y_vals["medium"]),
+                min(x_vals["far_right"], y_vals["far"])
+            ])
+        }
 
-        return 0
+        velocity = sum(
+            activations[val] * self.velocity_fx[val](x_diff, y_diff)
+            for val in activations
+        ) / sum(activations[val] for val in activations)
+
+        # print(f"------------------------")
+        # print(f"X distance: {x_diff}")
+        # print(f"Y distance: {y_diff}")
+        # print(f"Velocity: {velocity}")
+        # for val in activations:
+        #     print(f"{val}: {activations[val]}")
+
+        return velocity
 
 
 if __name__ == "__main__":
