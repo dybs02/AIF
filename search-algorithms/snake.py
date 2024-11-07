@@ -285,13 +285,15 @@ class HumanPlayer(Player):
 # DO NOT MODIFY CODE ABOVE THIS LINE
 # ----------------------------------
 
+import heapq
+
 
 class SearchBasedPlayer(Player):
     def __init__(self):
         super(SearchBasedPlayer, self).__init__()
 
     def search_path(self, snake: Snake, food: Food, *obstacles: Set[Obstacle]):
-        path = self.bfs(snake, food, *obstacles)
+        path = self.dijkstra(snake, food, *obstacles)
         if path:
             self.chosen_path = path
             # self.chosen_path.append(path.pop(0))
@@ -352,6 +354,59 @@ class SearchBasedPlayer(Player):
                     self.visited.add(next_pos)
                     queue.append((next_pos, path + [Direction((dx, dy))]))
 
+    def dijkstra(self, snake: Snake, food: Food, *obstacles: Set[Obstacle]):
+        start = snake.get_head_position()
+        tiebreaker = start.x * 0.01 + start.y * 0.0001
+        path = []
+        cost = {start: 0}
+        pq = PriorityQueue()
+        pq.put(start, tiebreaker, path, 0)
+        self.visited = set()
+
+        while not pq.empty():
+            path, current = pq.get()
+
+            if current == food.position:
+                return path
+            
+            if current in self.visited:
+                continue
+            self.visited.add(current)
+
+            for d in [Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT]:
+                dx = d.value[0]
+                dy = d.value[1]
+                next_pos = Position(current.x + dx, current.y + dy)
+                new_cost = cost[current] + 1
+
+                if  (
+                        next_pos in snake.positions or
+                        next_pos in [obs.position for obs in obstacles[0]] or
+                        next_pos.check_bounds(GRID_WIDTH, GRID_HEIGHT)
+                    ):
+                    continue
+
+                if next_pos not in cost or new_cost < cost[next_pos]:
+                    cost[next_pos] = new_cost
+                    pq.put(
+                        next_pos,
+                        next_pos.x * 0.01 + next_pos.y * 0.0001,
+                        path + [Direction((dx, dy))],
+                        new_cost
+                        )  
+
+class PriorityQueue:
+    def __init__(self):
+        self.nodes = []
+
+    def put(self, node, tiebraker, path, cost):
+        heapq.heappush(self.nodes, (cost, tiebraker, path, node))
+
+    def get(self):
+        return heapq.heappop(self.nodes)[-2:]
+
+    def empty(self):
+        return len(self.nodes) == 0
 
 
 if __name__ == "__main__":
